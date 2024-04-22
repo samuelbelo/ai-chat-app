@@ -1,11 +1,13 @@
 <template>
 	<UPage>
 		<UContainer>
+		
+<!--			<USelectMenu v-model="selectedModel" :options="['lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF']" />-->
 			<UCard :ui="{ _borderWidth: 0, borderOpacity: 0 }" class="mt-4 h-[87vh]">
 				<template #default>
-					<div id="defaultContainer" class="h-[74vh]">
+					<div ref="messagesContainer" id="defaultContainer" class="h-[74vh]">
 						<div v-auto-animate="{duration: 100}" v-if="chatList.length" class="mt-4" v-for="(chat, i) in chatList">
-							<div class="text-center font-bold antialiased text-white p-1 rounded-lg w-16"
+							<div class="text-center font-bold antialiased dark:text-white p-1 rounded-lg w-16"
 							     v-if="chat.role === 'user'">You
 							</div>
 							<div
@@ -20,7 +22,7 @@
 									class="prose-xl
 								border
 								antialiased
-								border-gray-800
+								dark:border-gray-800
 								prose-blue
 								prose-pre:bg-zinc-800
 								prose-pre:text-gray-200
@@ -39,6 +41,7 @@
 				<template #footer>
 					<div id="footerFields" style="display: flex;">
 						<UInput
+								placeholder="Type your prompt here"
 								:disabled="generating"
 								class="mr-3 w-full"
 								@keyup.enter="fetchChat"
@@ -63,19 +66,27 @@
 	</UPage>
 </template>
 <script lang="ts" setup>
-import {useEventListener} from "@vueuse/core";
+import {useEventListener, useScroll} from "@vueuse/core";
+import {useChatStore} from "~/store/chatStore";
+import {storeToRefs} from "pinia";
+
+const {chatList} = storeToRefs(useChatStore())
 
 const toast = useToast()
+const selectedModel = ref('lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF')
 
 interface Chat {
 	role: 'user' | 'ai' | 'error'
 	content: string
 }
 
+const messagesContainer = ref<HTMLDivElement>()
+const {x, y: yScroll} = useScroll(messagesContainer)
+
 const cancelButton = ref<HTMLButtonElement>()
-const userPrompt = ref('please phrase 10 code blocks without a language key, each containing 1 line of code in a different language. use markdown code blocks.')
+const userPrompt = ref('')
 const chatResponse = ref('')
-const chatList = ref<Chat[]>([])
+// const chatList = ref<Chat[]>([])
 const generating = ref(false)
 
 const fetchChat = async () => {
@@ -108,7 +119,7 @@ const fetchChat = async () => {
 						messages: [
 							{
 								role: "system",
-								content: "You are a helpful, smart, kind, and efficient Coding AI assistant. You always fulfill the user's requests to the best of your ability."
+								content: "You are a helpful, smart, kind, and efficient coach AI assistant. You always fulfill the user's requests to the best of your ability. You're the upmost helper when it comes to job interviews, mainly on the Business Analyst field."
 							},
 							{
 								role: "user",
@@ -127,6 +138,7 @@ const fetchChat = async () => {
 		
 		chatList.value.push({role: 'ai', content: ''})
 		while (true) {
+			yScroll.value += 100
 			const {done, value} = await reader.read()
 			if (done) {
 				console.info('Stream is done')
@@ -164,7 +176,10 @@ const fetchChat = async () => {
 }
 
 #defaultContainer {
+	scroll-behavior: smooth;
 	max-height: calc(100vh - 230px);
 	overflow-y: auto;
+	overflow-anchor: auto !important;
+	flex-direction: column-reverse;
 }
 </style>
