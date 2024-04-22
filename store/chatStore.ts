@@ -7,8 +7,12 @@ interface Chat {
 }
 export const useChatStore = defineStore('chatStore', () => {
 	const chatList = ref<Chat[]>([])
+	const userPrompt = ref<string>('')
 
-	return {chatList}
+	return {
+		chatList,
+		userPrompt
+	}
 }, {
 	persist: true
 })

@@ -1,8 +1,6 @@
 <template>
 	<UPage>
 		<UContainer>
-		
-<!--			<USelectMenu v-model="selectedModel" :options="['lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF']" />-->
 			<UCard :ui="{ _borderWidth: 0, borderOpacity: 0 }" class="mt-4 h-[87vh]">
 				<template #default>
 					<div ref="messagesContainer" id="defaultContainer" class="h-[74vh]">
@@ -47,18 +45,25 @@
 								@keyup.enter="fetchChat"
 								:ui="{ padding: 'px-6 py-10' }"
 								v-model="userPrompt"/>
-						<UButton
-								v-if="!generating"
-								icon="carbon:send"
-								@click="fetchChat"
-								variant="ghost"/>
-						<UButton
-								ref="cancelButton"
-								color="red"
-								v-else
-								icon="fluent:record-stop-16-regular"
-								id="stopButton"
-								variant="ghost"/>
+						<UTooltip v-if="!generating" text="Send message" :shortcuts="['Enter']">
+							<UButton
+									:disabled="userPrompt === ''"
+									icon="carbon:send"
+									@click="fetchChat"
+									variant="ghost"/>
+						</UTooltip>
+						<UTooltip v-else text="Cancel generation" :shortcuts="[]">
+							<UButton
+									ref="cancelButton"
+									color="red"
+									icon="fluent:record-stop-16-regular"
+									id="stopButton"
+									variant="ghost"/>
+						</UTooltip>
+						<UTooltip text="Clear chat history" :shortcuts="[]">
+							<UButton :disabled="!chatList.length" icon="icon-park-solid:clear-format" variant="ghost"
+							         @click="clearChat"/>
+						</UTooltip>
 					</div>
 				</template>
 			</UCard>
@@ -70,23 +75,26 @@ import {useEventListener, useScroll} from "@vueuse/core";
 import {useChatStore} from "~/store/chatStore";
 import {storeToRefs} from "pinia";
 
-const {chatList} = storeToRefs(useChatStore())
+const {chatList, userPrompt} = storeToRefs(useChatStore())
+
+const clearChat = () => {
+	chatList.value = []
+	toast.add({
+		icon: 'material-symbols:chat-error-rounded',
+		id: 'clearChat',
+		title: 'Chat Cleared',
+		description: 'The chat has been cleared',
+		color: 'green'
+	})
+}
 
 const toast = useToast()
 const selectedModel = ref('lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF')
-
-interface Chat {
-	role: 'user' | 'ai' | 'error'
-	content: string
-}
 
 const messagesContainer = ref<HTMLDivElement>()
 const {x, y: yScroll} = useScroll(messagesContainer)
 
 const cancelButton = ref<HTMLButtonElement>()
-const userPrompt = ref('')
-const chatResponse = ref('')
-// const chatList = ref<Chat[]>([])
 const generating = ref(false)
 
 const fetchChat = async () => {
